@@ -2,21 +2,17 @@
 import argparse
 import logging
 import os
+import texterra
+import pickle
 
 import pandas
-from text_process import *
-from sklearn.feature_extraction.text import TfidfVectorizer
-
-from sklearn.svm import SVC
-from sklearn.linear_model import LogisticRegression
-from sklearn.naive_bayes import MultinomialNB
-from lightgbm.sklearn import LGBMClassifier
-
+from semester_work.Model import *
 from sklearn.externals import joblib
-
 
 language = 'russian'
 word_type = 'surface_all'
+pos_neg = []
+te = texterra.API(host='http://localhost:8082/texterra/')
 
 if __name__ == '__main__':
     # Parsing arguments
@@ -28,8 +24,18 @@ if __name__ == '__main__':
         '--src-train-texts', '-c',
         type=str,
         help='Path to corpus',
+        dest='c',
         required=True
     )
+
+    # parser.add_argument(
+    #     '--lang',
+    #     choices=['russian', 'english'],
+    #     type=str,
+    #     dest='language',
+    #     help='Language of corpus',
+    #     required=True
+    # )
 
     parser.add_argument(
         '--text-encoding',
@@ -58,8 +64,9 @@ if __name__ == '__main__':
 
     parser.add_argument(
         '--features',
-        type=bool,
-        default=False,
+        type=str,
+        choices=['true', 'false'],
+        default='false',
         help='Use hand-crafted features'
     )
 
@@ -94,6 +101,7 @@ if __name__ == '__main__':
     )
 
     args, unparsed = parser.parse_known_args()
+    word_type = args.word_type
 
     # Enable logging if needed
     logging.basicConfig(level=(logging.INFO if args.verbose else logging.WARNING))
@@ -106,66 +114,41 @@ if __name__ == '__main__':
     texts = []
     classes = []
     logging.info('Reading...')
-    if os.path.isfile(args.c):
-        if os.access(args.c, os.R_OK):
-            file = pandas.read_csv(args.c, encoding=args.encoding)
-            texts.append(file[0])
-            classes.append(file[1])
-        else:
-            logging.FATAL('Нет доступа к файлу')
-            exit(-1)
+    if os.access(args.c, os.R_OK):
+        file = pandas.read_csv(args.c, encoding=args.encoding, header=-1)
+        texts = pandas.Series(file[0])
+        classes = pandas.Series(file[1])
     else:
-        if os.path.isdir(args.c):
-            only_files = [f for f in os.listdir(args.c) if os.path.isfile(os.path.join(args.c, f))]
-            for file in only_files:
-                file = pandas.read_csv(args.c, encoding=args.encoding)
-                texts.append(file[0])
-                classes.append(file[1])
-        else:
-            logging.FATAL('Не верный путь к файлу')
-            exit(-1)
+        logging.FATAL('Нет доступа к файлу')
+        exit(-1)
 
     # Warn if database empty
     if len(texts) == 0:
         logging.ERROR('Нет текста для обучения')
         exit(-1)
 
-    if len(texts) < 500:
-        logging.WARNING('Текстов слишком мало < 500')
+    if len(texts) < 100:
+        logging.WARNING('Текстов слишком мало < 100')
 
-    # Vectoring
-    logging.info('Creating Vectorizer...')
-    vectorizer = TfidfVectorizer(
-        analyzer=text_process,
-        min_df=args.unknown_word_freq,
-        encoding=args.encoding,
-        smooth_idf=args.laplace,
-        ngram_range=(args.n, args.n)
-    )
+    # language detection
+    logging.info('Language detection...')
+    result = te.language_detection(texts[0])
+    for item in result:
+        if item == "ru":
+            language = 'russian'
+        if item == 'en':
+            language = 'english'
+    logging.info('Language detected: {0}'.format(language))
 
-    logging.info('Fitting and transforming vectorizer...')
-    fitted_vectoriser = vectorizer.fit(texts)
-    counts = fitted_vectoriser.transform(texts)
-
-    clf = []
-    if args.clf == 'svm':
-        clf = SVC()
-    elif args.clf == 'logistic_regression':
-        clf = LogisticRegression()
-    elif args.clf == 'naive_bayes':
-        clf = MultinomialNB()
-    elif args.clf == 'lgbm':
-        clf = LGBMClassifier()
-
-    logging.info("Using Classifier {0}".format(args.clf))
-
+    model = Model(args, language)
     logging.info('Start training...')
-    clf.fit(counts, classes)
+    model = model.fit(texts, classes, True)
 
-    # ToDo: add testing on 4-folds
     # Writing
     logging.info('Writing to file...: {0}'.format(args.o))
-    joblib.dump(clf, args.o)
+    # joblib.dump(model.pipeline_clf, args.o)
+    with open(args.o, 'wb') as f:
+        pickle.dump(model, f)
 
     logging.info('Writing Finished. Good job!')
 

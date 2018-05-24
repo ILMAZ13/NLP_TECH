@@ -46,7 +46,8 @@ if __name__ == '__main__':
     with open(args.dest, 'w') as csv_file:
         writer = csv.writer(csv_file)
         for row in zip(texts, classes):
-            writer.writerow(row)
+            if len(row[0]) > 0:
+                writer.writerow(row)
 
     logging.info('Done.')
 
