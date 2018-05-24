@@ -136,44 +136,47 @@ class Model:
 
     def fit(self, texts, classes, test_needed):
         if test_needed:
-            kf = KFold(len(classes), 4, random_state=13)
-            logging.info('Start testing on 4 folds...')
-            i = 0
-            for train_index, test_index in kf:
-                i += 1
-                logging.info("Fold {0}".format(i))
-                X_train, X_test = texts[train_index], texts[test_index]
-                y_train, y_test = classes[train_index], classes[test_index]
-                self.pipeline_clf = self.pipeline_clf.fit(X_train, y_train)
-                y_pred = self.pipeline_clf.predict(X_test)
-                print(classification_report(y_test, y_pred))
-                print(confusion_matrix(y_test, y_pred))
+            texts = texts[:10000]
+            classes = classes[:10000]
+            # kf = KFold(len(classes), 4, random_state=13)
+            # logging.info('Start testing on 4 folds...')
+            # i = 0
+            # for train_index, test_index in kf:
+            #     i += 1
+            #     logging.info("Fold {0}".format(i))
+            #     X_train, X_test = texts[train_index], texts[test_index]
+            #     y_train, y_test = classes[train_index], classes[test_index]
+            X_train, X_test, y_train, y_test = train_test_split(texts, classes, test_size=0.25, random_state=13)
+            self.pipeline_clf = self.pipeline_clf.fit(X_train, y_train)
+            y_pred = self.pipeline_clf.predict(X_test)
+            f = open('baseline_3Corp.txt', 'w+')
+            print(classification_report(y_test, y_pred), file=f)
+            print(confusion_matrix(y_test, y_pred), file=f)
 
-                coefs = self.pipeline_clf.named_steps['clf'].coef_.tolist()
-                names = self.pipeline_clf.named_steps['union'].get_feature_names()
-                tab = "    "
-                for i in range(len(coefs)):
-                    if len(coefs) > 1:
-                        print(self.pipeline_clf.named_steps['clf'].classes_[i])
-                    else:
-                        print(self.pipeline_clf.named_steps['clf'].classes_[1])
+            coefs = self.pipeline_clf.named_steps['clf'].coef_.tolist()
+            names = self.pipeline_clf.named_steps['union'].get_feature_names()
+            tab = "    "
+            for i in range(len(coefs)):
+                if len(coefs) > 1:
+                    print(self.pipeline_clf.named_steps['clf'].classes_[i], file=f)
+                else:
+                    print(self.pipeline_clf.named_steps['clf'].classes_[1], file=f)
+                for j in range(10):
+                    max_index = coefs[i].index(max(coefs[i]))
+                    coefs[i][max_index] = -1
+                    word = names[max_index]
+                    print(tab, word, file=f)
+                if len(coefs) == 1:
+                    coefs = self.pipeline_clf.named_steps['clf'].coef_.tolist()
+                    print(self.pipeline_clf.named_steps['clf'].classes_[0], file=f)
                     for j in range(10):
-                        max_index = coefs[i].index(max(coefs[i]))
-                        coefs[i][max_index] = -1
-                        word = names[max_index]
-                        print(tab, word)
-                    if len(coefs) == 1:
-                        coefs = self.pipeline_clf.named_steps['clf'].coef_.tolist()
-                        print(self.pipeline_clf.named_steps['clf'].classes_[0])
-                        for j in range(10):
-                            min_index = coefs[i].index(min(coefs[i]))
-                            coefs[i][min_index] = 1
-                            word = names[min_index]
-                            print(tab, word)
+                        min_index = coefs[i].index(min(coefs[i]))
+                        coefs[i][min_index] = 1
+                        word = names[min_index]
+                        print(tab, word, file=f)
 
         else:
             self.pipeline_clf = self.pipeline_clf.fit(texts, classes)
             logging.info('Training finished')
-
 
         return self

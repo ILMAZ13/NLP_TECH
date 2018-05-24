@@ -122,7 +122,7 @@ if __name__ == '__main__':
     classes = []
     logging.info('Reading...')
     if os.access(args.c, os.R_OK):
-        file = pandas.read_csv(args.c, encoding=args.encoding, header=-1)
+        file = pandas.read_csv(args.c, encoding=args.encoding, delimiter=' ', header=-1)
         texts = pandas.Series(file[0])
         classes = pandas.Series(file[1])
     else:

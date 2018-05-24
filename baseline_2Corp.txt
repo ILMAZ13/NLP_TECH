@@ -1,0 +1,31 @@
+             precision    recall  f1-score   support
+
+   negative       0.92      0.97      0.95      1374
+   positive       0.96      0.90      0.93      1126
+
+avg / total       0.94      0.94      0.94      2500
+
+[[1337   37]
+ [ 117 1009]]
+positive
+     vectorizer__спасибо
+     vectorizer__очень
+     vectorizer__благодарность
+     vectorizer__хочу
+     vectorizer__поблагодарить
+     vectorizer__большое
+     vectorizer__огромное
+     vectorizer__выразить
+     vectorizer__быстро
+     vectorizer__профессионализм
+negative
+     vectorizer__вообще
+     vectorizer__это
+     vectorizer__почему
+     vectorizer__сказала
+     vectorizer__деньги
+     vectorizer__пришла
+     vectorizer__трубку
+     vectorizer__невозможно
+     vectorizer__вопрос
+     vectorizer__дозвониться

@@ -32,22 +32,27 @@ with open('pmi.csv', 'w', newline='', encoding='utf-8') as csvfile:
     for i in range(len(words)):
         writer.writerow([words[i],  pmi_pos[i] + pmi_neg[i]])
 
-doc_lex = []
+doc75 = []
 for i in range(int(len(doc) * 3 / 4)):
     rnd = random.choice(doc)
-    doc_lex.append(rnd)
+    doc75.append(rnd)
     doc.remove(rnd)
 
-words, words_amount, reviews_count_pos, reviews_count_neg, words_in_pos, words_in_neg, word_occurrence, word_occurrence_pos, word_occurrence_neg = getStat(doc_lex) 
+words, words_amount, reviews_count_pos, reviews_count_neg, words_in_pos, words_in_neg, word_occurrence, word_occurrence_pos, word_occurrence_neg = getStat(doc75)
 local_dictionary_size = len(words)
 pmi_pos, pmi_neg = calcPMI(word_occurrence, word_occurrence_pos, word_occurrence_neg, words_in_pos, words_in_neg, local_dictionary_size, words_amount)
 
-with open('chunk_' + sys.argv[1] + '.lex', 'w', newline='', encoding='utf-8') as csvfile:
+with open('auto_lex', 'w', newline='', encoding='utf-8') as csvfile:
     writer = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
     for i in range(len(words)):
         writer.writerow([words[i],  pmi_pos[i] + pmi_neg[i]])
 
-with open('chunk_' + sys.argv[1], 'w', newline='', encoding='utf-8') as csvfile:
+with open('75_' + sys.argv[1], 'w', newline='', encoding='utf-8') as csvfile:
+    writer = csv.writer(csvfile, delimiter=' ', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+    for d in doc75:
+        writer.writerow(d)
+
+with open('25_' + sys.argv[1], 'w', newline='', encoding='utf-8') as csvfile:
     writer = csv.writer(csvfile, delimiter=' ', quotechar='"', quoting=csv.QUOTE_MINIMAL)
     for d in doc:
         writer.writerow(d)
