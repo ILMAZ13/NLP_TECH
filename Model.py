@@ -30,10 +30,16 @@ class CustomFeatures(BaseEstimator, TransformerMixin):
         self.textAnalyser.pos_change = 0
         self.textAnalyser.neg_change = 0
         self.textAnalyser.text = ""
+        # last added
+        self.textAnalyser.eng_lex_pos = ""
+        self.textAnalyser.eng_lex_neg = ""
+        self.textAnalyser.eng_lex = ""
+        self.textAnalyser.rus_lex = ""
+        self.textAnalyser.auto_lex = []
         return counts
 
     def get_feature_names(self):
-        return ['custom1', 'custom2', 'custom3', 'custom4', 'custom5', 'custom6']
+        return self.textAnalyser.features_names
 
 
 class PosTagTransformer(BaseEstimator, TransformerMixin):
@@ -130,13 +136,11 @@ class Model:
 
     def fit(self, texts, classes, test_needed):
         if test_needed:
-            texts = texts[:10]
-            classes = classes[:10]
             kf = KFold(len(classes), 4, random_state=13)
             logging.info('Start testing on 4 folds...')
             i = 0
             for train_index, test_index in kf:
-                i = i + 1
+                i += 1
                 logging.info("Fold {0}".format(i))
                 X_train, X_test = texts[train_index], texts[test_index]
                 y_train, y_test = classes[train_index], classes[test_index]
