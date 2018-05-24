@@ -7,7 +7,6 @@ import pickle
 
 import pandas
 from semester_work.Model import *
-from sklearn.externals import joblib
 
 language = 'russian'
 word_type = 'surface_all'
@@ -68,6 +67,14 @@ if __name__ == '__main__':
         choices=['true', 'false'],
         default='false',
         help='Use hand-crafted features'
+    )
+
+    parser.add_argument(
+        '--features_c3',
+        type=str,
+        choices=['true', 'false'],
+        default='false',
+        help='Use features from c3'
     )
 
     parser.add_argument(

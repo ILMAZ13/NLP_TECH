@@ -99,7 +99,7 @@ class Model:
             self.clf = LGBMClassifier()
         logging.info("Using Classifier {0}".format(args.clf))
 
-        self.textAnalyser = TextAnalyser(language, args.word_type, args.features)
+        self.textAnalyser = TextAnalyser(language, args.word_type, args.features, args.features_c3)
 
         self.vectorizer = TfidfVectorizer(
             analyzer=self.textAnalyser.text_process,

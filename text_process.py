@@ -2,18 +2,23 @@ import string
 import texterra
 import logging
 import re
+import csv
 from nltk.corpus import stopwords
 from nltk.stem import SnowballStemmer
 from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
 
 # from TrainModel import *
 
 
 class TextAnalyser:
     features = "true"
+    feature_3c = 'false'
     word_type = "surface_all"
     language = ""
     features_list = []
+    features_names = []
+    corpus_name = 'corpus_3c'
 
     # Global variables
     negation = ["no", "not", "не", "нет"]
@@ -22,23 +27,30 @@ class TextAnalyser:
     neg_change = 0
     # te = texterra.API('9318d65e0fd6e25b22bdcd3f6adc7bfcce4c8280')
     te = texterra.API(host='http://localhost:8082/texterra/')
+    lem = WordNetLemmatizer()
 
     # Lexicon
     eng_lex_pos = ""
     eng_lex_neg = ""
     eng_lex = ""
     rus_lex = ""
+    auto_lex = []
 
-    def __init__(self, language, word_type, features):
+    def __init__(self, language, word_type, features, features_c3):
         self.word_type = word_type
         self.features = features
         self.language = language
+        self.feature_3c = features_c3
         if self.language == "english":
             self.eng_lex_pos = open("positive-words.txt").read()
             self.eng_lex_neg = open("negative-words.txt").read()
             self.eng_lex = open("mpqa.tff").readlines()
         if self.language == "russian":
             self.rus_lex = open("rusentilex_2017.txt").readlines()
+        if self.feature_3c == 'true':
+            auto_lex_file = csv.reader(open('chunk_' + self.corpus_name + '.lex', 'r'), delimiter=',')
+            for line in auto_lex_file:
+                self.auto_lex.append(line)
 
     def text_process(self, text_raw):
         self.text = text_raw
@@ -65,9 +77,20 @@ class TextAnalyser:
             words = [word.translate(punc) for word in words]
             words = [word for word in words if word.isalpha()]
 
-        feature = self.pos_neg_features(words)
-        feature[0] = feature[0] + self.pos_change
-        feature[1] = feature[1] + self.neg_change
+        feature = []
+        if self.features == "true":
+            feature = self.pos_neg_features(words)
+            feature[0] = feature[0] + self.pos_change
+            feature[1] = feature[1] + self.neg_change
+
+        if self.feature_3c == 'true':
+            feature_al = self.feature_auto_lex(words)
+            self.features_names.append('not_zero_score')
+            self.features_names.append('total_score')
+            self.features_names.append('max_score')
+            self.features_names.append('last_score')
+            for f in feature_al:
+                feature.append(f)
 
         if self.word_type == 'stem':
             stemmer = SnowballStemmer(self.language)
@@ -103,16 +126,17 @@ class TextAnalyser:
         if word in string.punctuation:
             return None
         try:
-            result = self.te.lemmatization(word, rtype='lemma')
-            for item in result:
-                lemma = item
-            lemma = lemma[0]
             if self.language == "english":
+                lemma = self.lem.lemmatize(word)
                 if re.search(r'\b%s\b' % lemma, self.eng_lex_neg) is not None:
                     return "negative"
                 if re.search(r'\b%s\b' % lemma, self.eng_lex_pos) is not None:
                     return "positive"
             if self.language == "russian":
+                result = self.te.lemmatization(word, rtype='lemma')
+                for item in result:
+                    lemma = item
+                lemma = lemma[0]
                 for line in self.rus_lex:
                     if re.search(r'\b%s\b' % lemma, line.split(", ")[2]) is not None:
                         polarity = line.split(", ")[3]
@@ -126,10 +150,8 @@ class TextAnalyser:
         if word in string.punctuation:
             return None, None
         try:
-            result = self.te.lemmatization(word, rtype='lemma')
-            for item in result:
-                lemma = item
-            lemma = lemma[0]
+            lemma = ''
+            lemma = self.lem.lemmatize(word)
             for line in self.eng_lex:
                 if re.search(r'\bword1=%s\b' % lemma, line) is not None:
                     strength = re.search(r'type=(.+) l', line).group(1)
@@ -142,8 +164,13 @@ class TextAnalyser:
 
     def pos_neg_features(self, words):
         features = [0] * 6
+        self.features_names = ['count_pos', 'count_neg', 'sum_pos_aff', 'sum_neg_aff', 'sum_pos_neg', 'sum_neg_neg']
         if self.language == "english":
             features = [0] * 10
+            self.features_names.append('sum_pos_aff_mpqa')
+            self.features_names.append('sum_neg_aff_mpqa')
+            self.features_names.append('sum_pos_neg_mpqa')
+            self.features_names.append('sum_neg_neg_mpqa')
         count = {}
         count['positive'] = 0
         count['negative'] = 0
@@ -202,6 +229,29 @@ class TextAnalyser:
         if polarity == "negative":
             self.pos_change = self.pos_change + 1
             self.neg_change = self.neg_change - 1
+
+
+def auto_lex_search(self, word):
+    for line in self.auto_lex:
+        if line[0] == word:
+            return line[1]
+    return None
+
+
+def feature_auto_lex(self, words):
+    features = [0, 0, -1, 0]
+    for word in words:
+        score = self.auto_lex_search(word)
+        if score is not None:
+            score = float(score)
+            features[0] += 1
+            features[1] += score
+            if score > features[2]:
+                features[2] = score
+    last = self.auto_lex_search(words[len(words)-1])
+    if last is not None:
+        features[3] = last
+    return features
 
 
 if __name__ == '__main__':
