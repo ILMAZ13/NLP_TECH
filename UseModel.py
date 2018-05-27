@@ -47,7 +47,6 @@ if __name__ == '__main__':
         default='utf-8'
     )
 
-
     args, unparsed = parser.parse_known_args()
 
     # Enable logging if needed
@@ -60,7 +59,7 @@ if __name__ == '__main__':
     texts = []
     logging.info('Reading...')
     if os.access(args.c, os.R_OK):
-        file = pandas.read_csv(args.c, encoding=args.encoding, delimiter=' ', header=-1)
+        file = pandas.read_csv(args.c, encoding=args.encoding, header=-1)
         texts = pandas.Series(file[0])
     else:
         logging.FATAL('Нет доступа к файлу')

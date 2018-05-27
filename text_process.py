@@ -36,6 +36,8 @@ class TextAnalyser:
     rus_lex = ""
     auto_lex = []
 
+    count = 0
+
     def __init__(self, language, word_type, features, features_c3):
         self.word_type = word_type
         self.features = features
@@ -47,13 +49,17 @@ class TextAnalyser:
             self.eng_lex = open("mpqa.tff").readlines()
         if self.language == "russian":
             self.rus_lex = open("rusentilex_2017.txt").readlines()
-        if self.feature_3c == 'true':
-            auto_lex_file = csv.reader(open('chunk_' + self.corpus_name + '.lex', 'r'), delimiter=',')
-            for line in auto_lex_file:
-                self.auto_lex.append(line)
+
+    def init_c3(self, pmi_file):
+        auto_lex_file = csv.reader(open(pmi_file, 'r'), delimiter=',')
+        for line in auto_lex_file:
+            self.auto_lex.append(line)
 
     def text_process(self, text_raw):
         self.text = text_raw
+
+        self.count = self.count + 1
+        print(self.count)
 
         # language detection
         # result = self.te.language_detection(text)
@@ -102,14 +108,22 @@ class TextAnalyser:
         return words
 
     def neg_feature(self, text):
-        try:
-            result = self.te.syntax_detection(text)
-            for item in result:
-                tree = item.tree
-                for key in tree.keys():
-                    self.find_neg(tree, key)
-        except BaseException:
-            logging.warning('Error on text: {0}'.format(text))
+        if self.language == 'russian':
+            try:
+                result = self.te.syntax_detection(text)
+                for item in result:
+                    tree = item.tree
+                    for key in tree.keys():
+                        self.find_neg(tree, key)
+            except BaseException:
+                logging.warning('Error on text: {0}'.format(text))
+        if self.language == 'english':
+            words = word_tokenize(text)
+            words = [word.lower() for word in words if word.lower() not in stopwords.words(self.language)]
+            for index in range(len(words)):
+                if words[index] in self.negation:
+                    self.text = re.sub(r'\b%s\b' % words[index+1], words[index] + "_" + words[index+1], self.text, 1)
+                    self.text = re.sub(r'\b%s\b' % words[index], '', self.text, 1)
 
     def find_neg(self, tree, key):
         node_list = tree[key]
@@ -142,8 +156,8 @@ class TextAnalyser:
                         polarity = line.split(", ")[3]
                         if polarity == "positive" or polarity == "negative":
                             return polarity
-        except BaseException:
-            logging.warning('Error on word: {0}'.format(word))
+        except BaseException as e:
+            logging.warning('pos_neg: Error on word: {0} {1}'.format(word, str(e)))
         return None
 
     def pos_neg_additional(self, word):
@@ -159,7 +173,7 @@ class TextAnalyser:
                     if polarity == "positive" or polarity == "negative":
                         return polarity, strength
         except BaseException:
-            logging.warning('Error on word: {0}'.format(word))
+            logging.warning('additional: Error on word: {0}'.format(word))
         return None, None
 
     def pos_neg_features(self, words):
@@ -179,7 +193,7 @@ class TextAnalyser:
             match = re.search(r'^(no|not|не|нет)_(.+)$', word)
             if match is not None:
                 isNeg = True
-                word = word_wo_neg = match.group(2)
+                word = match.group(2)
             polarity = self.pos_neg(word)
             if polarity is not None:
                 count[polarity] = count[polarity] + 1
@@ -230,28 +244,29 @@ class TextAnalyser:
             self.pos_change = self.pos_change + 1
             self.neg_change = self.neg_change - 1
 
+    def auto_lex_search(self, word):
+        for line in self.auto_lex:
+            if line[0] == word:
+                return line[1]
+        return None
 
-def auto_lex_search(self, word):
-    for line in self.auto_lex:
-        if line[0] == word:
-            return line[1]
-    return None
-
-
-def feature_auto_lex(self, words):
-    features = [0, 0, -1, 0]
-    for word in words:
-        score = self.auto_lex_search(word)
-        if score is not None:
-            score = float(score)
-            features[0] += 1
-            features[1] += score
-            if score > features[2]:
-                features[2] = score
-    last = self.auto_lex_search(words[len(words)-1])
-    if last is not None:
-        features[3] = last
-    return features
+    def feature_auto_lex(self, words):
+        features = [0, 0, -1, 0]
+        for word in words:
+            score = self.auto_lex_search(word)
+            if score is not None:
+                score = float(score)
+                features[0] += 1
+                features[1] += score
+                if score > features[2]:
+                    features[2] = score
+        try:
+            last = self.auto_lex_search(words[len(words)-1])
+            if last is not None:
+                features[3] = last
+            return features
+        except IndexError:
+            return features
 
 
 if __name__ == '__main__':

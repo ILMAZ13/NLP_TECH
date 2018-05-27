@@ -6,7 +6,7 @@ import texterra
 import pickle
 
 import pandas
-from semester_work.Model import *
+from Model import *
 
 language = 'russian'
 word_type = 'surface_all'
@@ -27,14 +27,21 @@ if __name__ == '__main__':
         required=True
     )
 
-    # parser.add_argument(
-    #     '--lang',
-    #     choices=['russian', 'english'],
-    #     type=str,
-    #     dest='language',
-    #     help='Language of corpus',
-    #     required=True
-    # )
+    parser.add_argument(
+        '--logs-file', '-l',
+        type=str,
+        help='Path to train result logs',
+        dest='l',
+        default='log.log'
+    )
+
+    parser.add_argument(
+        '--pmi',
+        type=str,
+        help='Path to save pmi, only if features_c3 enabled',
+        dest='pmi',
+        default='pmi.csv'
+    )
 
     parser.add_argument(
         '--text-encoding',
@@ -70,7 +77,7 @@ if __name__ == '__main__':
     )
 
     parser.add_argument(
-        '--features_c3',
+        '--feature_c3',
         type=str,
         choices=['true', 'false'],
         default='false',
@@ -122,7 +129,7 @@ if __name__ == '__main__':
     classes = []
     logging.info('Reading...')
     if os.access(args.c, os.R_OK):
-        file = pandas.read_csv(args.c, encoding=args.encoding, delimiter=' ', header=-1)
+        file = pandas.read_csv(args.c, encoding=args.encoding, header=-1)
         texts = pandas.Series(file[0])
         classes = pandas.Series(file[1])
     else:
