@@ -1,0 +1,10 @@
+number of reviews: 
+113836
+number of words: 
+6105654
+size of dictionary: 
+72523
+number of positive reviews: 
+46140
+number of negative reviews: 
+49090

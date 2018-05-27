@@ -1,0 +1,10 @@
+number of reviews: 
+59937
+number of words: 
+3555677
+size of dictionary: 
+80877
+number of positive reviews: 
+32220
+number of negative reviews: 
+27717
